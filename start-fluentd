@@ -1,0 +1,30 @@
+#!/bin/bash
+
+conf_file=/etc/td-agent/td-agent.conf
+
+cat << EOF >> ${conf_file}
+# Do not directly collect fluentd's own logs to avoid infinite loops.
+<match fluent.**>
+  type null
+</match>
+
+<source>
+  @type dummy
+  dummy {"total":100, "count":10}
+  tag test
+</source>
+
+<filter test.**>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    avg ${record["total"] / record["count"]}
+  </record>
+</filter>
+
+<match **>
+  @type stdout
+</match>
+EOF
+
+exec td-agent
